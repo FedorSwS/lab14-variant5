@@ -1,0 +1,12 @@
+[package]
+name = "log_validator"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "log_validator"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.21", features = ["extension-module"] }
+regex = "1.10"
