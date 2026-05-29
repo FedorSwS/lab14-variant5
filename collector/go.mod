@@ -2,7 +2,10 @@ module github.com/FedorSwS/lab14-variant5/collector
 
 go 1.25.0
 
-require go.etcd.io/etcd/client/v3 v3.6.11
+require (
+	github.com/segmentio/kafka-go v0.4.51
+	go.etcd.io/etcd/client/v3 v3.6.11
+)
 
 require (
 	github.com/coreos/go-semver v0.3.1 // indirect
@@ -10,6 +13,8 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.11 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.11 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

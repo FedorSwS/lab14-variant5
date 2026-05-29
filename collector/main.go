@@ -22,37 +22,29 @@ func main() {
 
 	log.Printf("Starting collector: workers=%d, rate=%d, window=%v", *workers, *rate, *windowSize)
 
-	// Создаём коллектор
 	collector, err := NewCollector(*output, *bufSize, *flushInt)
 	if err != nil {
 		log.Fatal(err)
 	}
 	collector.Start(*workers)
 
-	// Создаём оконный агрегатор
 	window := NewTumblingWindow(*windowSize)
 	window.Start()
 
-	// Создаём Kafka продюсер
 	kafkaProducer := NewKafkaProducer(GetKafkaBrokersFromEnv(), *kafkaTopic)
 
-	// Запускаем горутину для отправки агрегированных данных в Kafka
 	go func() {
 		for stats := range window.Output() {
-			// Отправляем в Kafka
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			if err := kafkaProducer.SendWindowStats(ctx, stats); err != nil {
-				log.Printf("Failed to send to Kafka: %v", err)
+				log.Printf("Kafka send error: %v", err)
 			}
 			cancel()
-
-			// Логируем для отладки
-			log.Printf("[Window] Requests: %d, AvgRT: %.3fs, TopPath: %s, Status2xx: %d",
-				stats.TotalRequests, stats.AvgResponseTime, stats.TopPath, stats.Status2xx)
+			log.Printf("[Window] Requests: %d, AvgRT: %.3fs, TopPath: %s",
+				stats.TotalRequests, stats.AvgResponseTime, stats.TopPath)
 		}
 	}()
 
-	// Генератор логов (сырые данные идут и в окна, и в Kafka)
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		ticker := time.NewTicker(time.Second / time.Duration(*rate))
@@ -75,22 +67,21 @@ func main() {
 					UserAgent:    "Mozilla/5.0",
 					Timestamp:    time.Now(),
 				}
-				// Отправляем в коллектор (для JSONL файла)
 				collector.Submit(entry)
-				// Отправляем в оконный агрегатор
 				window.Submit(entry)
-				// Отправляем в Kafka (сырые логи)
-				go func(e LogEntry) {
-					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-					kafkaProducer.SendLogEntry(ctx, e)
-					cancel()
-				}(entry)
+
+				if kafkaProducer.Enabled {
+					go func(e LogEntry) {
+						ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+						kafkaProducer.SendLogEntry(ctx, e)
+						cancel()
+					}(entry)
+				}
 				count++
 			}
 		}
 	}()
 
-	// Graceful shutdown
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh

@@ -10,19 +10,16 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// KafkaProducer отправляет агрегированные статистики в Kafka топик
 type KafkaProducer struct {
 	writer  *kafka.Writer
 	topic   string
-	enabled bool
+	Enabled bool
 }
 
-// NewKafkaProducer создаёт новый Kafka продюсер
 func NewKafkaProducer(brokers []string, topic string) *KafkaProducer {
-	// Если нет брокеров - продюсер отключён
 	if len(brokers) == 0 || brokers[0] == "" {
-		log.Println("Kafka producer disabled: no brokers configured")
-		return &KafkaProducer{enabled: false}
+		log.Println("Kafka producer disabled: KAFKA_BOOTSTRAP not set")
+		return &KafkaProducer{Enabled: false}
 	}
 
 	writer := &kafka.Writer{
@@ -34,63 +31,51 @@ func NewKafkaProducer(brokers []string, topic string) *KafkaProducer {
 		RequiredAcks: kafka.RequireOne,
 	}
 
-	log.Printf("Kafka producer initialized: brokers=%v, topic=%s", brokers, topic)
+	log.Printf("Kafka producer enabled: brokers=%v, topic=%s", brokers, topic)
 	return &KafkaProducer{
 		writer:  writer,
 		topic:   topic,
-		enabled: true,
+		Enabled: true,
 	}
 }
 
-// SendWindowStats отправляет агрегированные статистики в Kafka
 func (kp *KafkaProducer) SendWindowStats(ctx context.Context, stats WindowStats) error {
-	if !kp.enabled {
+	if !kp.Enabled {
 		return nil
 	}
-
 	data, err := json.Marshal(stats)
 	if err != nil {
 		return err
 	}
-
-	msg := kafka.Message{
+	return kp.writer.WriteMessages(ctx, kafka.Message{
 		Key:   []byte(stats.TopPath),
 		Value: data,
 		Time:  time.Now(),
-	}
-
-	return kp.writer.WriteMessages(ctx, msg)
+	})
 }
 
-// SendLogEntry отправляет сырой лог в Kafka (опционально)
 func (kp *KafkaProducer) SendLogEntry(ctx context.Context, entry LogEntry) error {
-	if !kp.enabled {
+	if !kp.Enabled {
 		return nil
 	}
-
 	data, err := json.Marshal(entry)
 	if err != nil {
 		return err
 	}
-
-	msg := kafka.Message{
+	return kp.writer.WriteMessages(ctx, kafka.Message{
 		Key:   []byte(entry.RemoteAddr),
 		Value: data,
 		Time:  time.Now(),
-	}
-
-	return kp.writer.WriteMessages(ctx, msg)
+	})
 }
 
-// Close закрывает Kafka продюсер
 func (kp *KafkaProducer) Close() error {
-	if kp.enabled && kp.writer != nil {
+	if kp.Enabled && kp.writer != nil {
 		return kp.writer.Close()
 	}
 	return nil
 }
 
-// GetKafkaBrokersFromEnv читает брокеры из переменной окружения
 func GetKafkaBrokersFromEnv() []string {
 	brokers := os.Getenv("KAFKA_BOOTSTRAP")
 	if brokers == "" {
