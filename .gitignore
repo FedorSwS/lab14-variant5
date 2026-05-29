@@ -1,0 +1,59 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+collector/collector
+collector/collector.exe
+rust_validator/target/
+rust_validator/*.so
+rust_validator/*.dylib
+
+# Python
+__pycache__/
+*.py[cod]
+.env
+.venv
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Go
+/vendor/
+.idea/
+*.swp
+*.swo
+.DS_Store
+collector/data/
+*.log
+
+# Data
+*.json
+*.parquet
+*.csv
+*.db
+*.duckdb
+data/
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temp
+tmp/
+temp/
+*.tmp
