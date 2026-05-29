@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-collector
+  namespace: log-pipeline
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: log-collector
+  template:
+    metadata:
+      labels:
+        app: log-collector
+    spec:
+      containers:
+      - name: collector
+        image: log-collector:latest
+        imagePullPolicy: IfNotPresent
+        args: ["-workers=4", "-rate=100"]
+        ports:
+        - containerPort: 8080
+        - containerPort: 50051
+        env:
+        - name: ETCD_ENDPOINTS
+          value: "etcd:2379"
+        - name: KAFKA_BOOTSTRAP
+          value: "kafka:9092"
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
