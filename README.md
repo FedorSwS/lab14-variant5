@@ -60,3 +60,24 @@ Memory	~28 MB	~156 MB	5.6x
 Throughput	10k logs/s	1.5k logs/s	6.7x
 Ссылки на репозиторий
 https://github.com/FedorSwS/lab14-variant5
+
+## Kafka Producer в Go
+
+Коллектор отправляет данные в Kafka:
+- **Сырые логи** → топик `logs`
+- **Агрегированные статистики** (каждые 5 секунд) → топик `aggregated`
+
+```go
+// Пример отправки в Kafka
+kafkaProducer.SendWindowStats(ctx, stats)
+kafkaProducer.SendLogEntry(ctx, entry)
+
+Переменные окружения
+Переменная	Описание
+KAFKA_BOOTSTRAP	Адрес Kafka брокера (например, localhost:9092)
+KAFKA_TOPIC	Имя топика (по умолчанию logs)
+
+Запуск с Kafka
+
+export KAFKA_BOOTSTRAP=localhost:9092
+./collector/collector -kafka-topic=logs
