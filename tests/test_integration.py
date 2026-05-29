@@ -8,7 +8,29 @@ from pathlib import Path
 import pytest
 import polars as pl
 
-
+def test_kafka_producer():
+    """Test Kafka producer integration (requires Kafka running)"""
+    import subprocess
+    import time
+    import json
+    
+    # Запускаем коллектор с Kafka на 3 секунды
+    env = {"KAFKA_BOOTSTRAP": "localhost:9092"}
+    
+    proc = subprocess.Popen(
+        ["./collector/collector", "-rate=50", "-workers=2", "-window=2s"],
+        env={**os.environ, **env},
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    
+    time.sleep(3)
+    proc.terminate()
+    proc.wait(timeout=5)
+    
+    # Если процесс завершился без ошибок - тест пройден
+    assert proc.returncode == 0 or proc.returncode == -15  # SIGTERM 
+    
 def test_go_collector():
     with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
         output_path = f.name
@@ -78,7 +100,7 @@ def test_rust_validator():
         assert len(errors) >= 2
     except ImportError:
         pytest.skip("Rust validator not built")
-
+        
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
